@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,12 +30,30 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  late WebSocketChannel channel;
+
+  @override
+  void initState() {
+    super.initState();
+
+    channel = WebSocketChannel.connect(
+      Uri.parse('ws://localhost:8080/ws'),
+    );
+
+    channel.stream.listen(print);
+  }
+
   int _counter = 0;
 
   void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
+    channel.sink.add('increment');
+  }
+
+  @override
+  void dispose() {
+    channel.sink.close();
+
+    super.dispose();
   }
 
   @override
