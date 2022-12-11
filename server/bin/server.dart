@@ -12,6 +12,10 @@ final _clients = <WebSocketChannel>[];
 late final RedisConnection conn;
 late final Command command;
 
+late final RedisConnection pubSubConn;
+late final Command pubSubCommand;
+late final PubSub pubSub;
+
 // Configure routes.
 final _router = Router()
   ..get('/', _rootHandler)
@@ -46,9 +50,11 @@ void _handler(WebSocketChannel webSocket) {
     stdout.writeln('[RECEIVED] $message');
 
     if (message == 'increment') {
-      // _counterValue++;
-
       final newValue = await command.send_object(['INCR', 'counter']);
+
+      command.send_object(['PUBLISH', 'counterUpdate', 'counter']);
+
+      stdout.writeln('[SENDING] $newValue');
 
       for (final client in _clients) {
         client.sink.add(newValue.toString());
@@ -62,6 +68,26 @@ void _handler(WebSocketChannel webSocket) {
 void main(List<String> args) async {
   conn = RedisConnection();
   command = await conn.connect('localhost', 6379);
+
+  pubSubConn = RedisConnection();
+  pubSubCommand = await pubSubConn.connect('localhost', 6379);
+  pubSub = PubSub(pubSubCommand);
+
+  pubSub.subscribe(['counterUpdate']);
+
+  pubSub
+      .getStream()
+      .handleError((e) => print("[ERROR] $e"))
+      .listen((message) async {
+    print("[PUBSUB] : $message");
+
+    final newValue = await command.send_object(['GET', 'counter']);
+    stdout.writeln('[SENDING] PUBSUB $newValue');
+
+    for (final client in _clients) {
+      client.sink.add(newValue.toString());
+    }
+  });
 
   // Use any available host or container IP (usually `0.0.0.0`).
   final ip = InternetAddress.anyIPv4;

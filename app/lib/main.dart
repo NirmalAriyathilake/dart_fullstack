@@ -21,6 +21,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
+const socketUrl = 'ws://localhost:8080/ws';
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
@@ -39,14 +41,19 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
+    print('[CONNECTED] $socketUrl');
+
     channel = WebSocketChannel.connect(
-      Uri.parse('ws://localhost:8080/ws'),
+      Uri.parse(socketUrl),
     );
 
     channel.stream.listen(
-      (value) => setState(() {
-        _counter = int.tryParse(value) ?? 0;
-      }),
+      (value) {
+        print('[RECEIVED] $value');
+        setState(() {
+          _counter = int.tryParse(value) ?? 0;
+        });
+      },
     );
   }
 
@@ -71,8 +78,9 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            Text(
+              socketUrl,
+              style: Theme.of(context).textTheme.headline4,
             ),
             Text(
               _counter?.toString() ?? '?',
