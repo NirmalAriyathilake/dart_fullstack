@@ -11,6 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -32,6 +33,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late WebSocketChannel channel;
 
+  int? _counter;
+
   @override
   void initState() {
     super.initState();
@@ -40,10 +43,12 @@ class _MyHomePageState extends State<MyHomePage> {
       Uri.parse('ws://localhost:8080/ws'),
     );
 
-    channel.stream.listen(print);
+    channel.stream.listen(
+      (value) => setState(() {
+        _counter = int.tryParse(value) ?? 0;
+      }),
+    );
   }
-
-  int _counter = 0;
 
   void _incrementCounter() {
     channel.sink.add('increment');
@@ -70,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
               'You have pushed the button this many times:',
             ),
             Text(
-              '$_counter',
+              _counter?.toString() ?? '?',
               style: Theme.of(context).textTheme.headline4,
             ),
           ],

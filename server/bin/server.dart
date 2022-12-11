@@ -6,6 +6,10 @@ import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+int _counterValue = 0;
+
+final _clients = <WebSocketChannel>[];
+
 // Configure routes.
 final _router = Router()
   ..get('/', _rootHandler)
@@ -22,8 +26,24 @@ Response _echoHandler(Request request) {
 }
 
 void _handler(WebSocketChannel webSocket) {
+  _clients.add(webSocket);
+
+  webSocket.sink.add(_counterValue.toString());
+
+  stdout.writeln('[CONNECTED] $webSocket');
+
   webSocket.stream.listen((message) {
-    webSocket.sink.add("echo $message");
+    stdout.writeln('[RECEIVED] $message');
+
+    if (message == 'increment') {
+      _counterValue++;
+
+      for (final client in _clients) {
+        client.sink.add(_counterValue.toString());
+      }
+    }
+  }).onDone(() {
+    _clients.remove(webSocket);
   });
 }
 
